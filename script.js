@@ -1,60 +1,68 @@
-// HTML Elements
-const cookie = document.getElementById('cookie');
-const basket = document.getElementById('basket');
-const scoreDisplay = document.getElementById('score');
+// Lustiges Jump and Run Spiel in JavaScript
 
-// Variables
-let score = 0;
-let cookieX = Math.random() * (window.innerWidth - 50);
-let cookieY = 0;
-let basketX = window.innerWidth / 2 - 50;
+const canvas = document.createElement('canvas');
+const ctx = canvas.getContext('2d');
+document.body.appendChild(canvas);
+canvas.width = 800;
+canvas.height = 400;
 
-// Update cookie position
-function updateCookie() {
-  cookieY += 5; // Cookie falls
-  if (cookieY > window.innerHeight - 70 && isCaught()) {
-    score++;
-    resetCookie();
-  } else if (cookieY > window.innerHeight) {
-    resetCookie();
-  }
-  cookie.style.top = `${cookieY}px`;
-  cookie.style.left = `${cookieX}px`;
+type Player = { x: number, y: number, width: number, height: number, dy: number, gravity: number, jumpPower: number, grounded: boolean };
+let player = { x: 50, y: 300, width: 30, height: 30, dy: 0, gravity: 0.5, jumpPower: -10, grounded: false };
+
+let obstacles = [{ x: 400, y: 350, width: 40, height: 40 }, { x: 700, y: 350, width: 40, height: 40 }];
+let keys = {};
+
+document.addEventListener('keydown', (e) => keys[e.code] = true);
+document.addEventListener('keyup', (e) => keys[e.code] = false);
+
+function update() {
+    // Gravitation
+    if (!player.grounded) {
+        player.dy += player.gravity;
+    }
+    
+    player.y += player.dy;
+    
+    // Begrenzung auf den Boden
+    if (player.y + player.height >= canvas.height - 50) {
+        player.y = canvas.height - 50 - player.height;
+        player.dy = 0;
+        player.grounded = true;
+    } else {
+        player.grounded = false;
+    }
+    
+    // Springen
+    if (keys['Space'] && player.grounded) {
+        player.dy = player.jumpPower;
+        player.grounded = false;
+    }
+    
+    // Bewegung der Hindernisse
+    obstacles.forEach(obstacle => {
+        obstacle.x -= 3;
+        if (obstacle.x + obstacle.width < 0) {
+            obstacle.x = canvas.width;
+        }
+    });
 }
 
-// Reset cookie
-function resetCookie() {
-  cookieY = 0;
-  cookieX = Math.random() * (window.innerWidth - 50);
-  updateScore();
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Spieler zeichnen
+    ctx.fillStyle = 'blue';
+    ctx.fillRect(player.x, player.y, player.width, player.height);
+    
+    // Hindernisse zeichnen
+    ctx.fillStyle = 'red';
+    obstacles.forEach(obstacle => ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height));
 }
 
-// Check if cookie is caught
-function isCaught() {
-  const basketLeft = basketX;
-  const basketRight = basketX + 100;
-  const cookieCenter = cookieX + 25;
-  return cookieCenter > basketLeft && cookieCenter < basketRight;
+function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
 }
 
-// Update score display
-function updateScore() {
-  scoreDisplay.textContent = `Score: ${score}`;
-}
-
-// Handle basket movement
-window.addEventListener('mousemove', (event) => {
-  basketX = event.clientX - 50;
-  if (basketX < 0) basketX = 0;
-  if (basketX > window.innerWidth - 100) basketX = window.innerWidth - 100;
-  basket.style.left = `${basketX}px`;
-});
-
-// Game loop
-function gameLoop() {
-  updateCookie();
-  requestAnimationFrame(gameLoop);
-}
-
-// Start the game
-gameLoop();
+loop();
